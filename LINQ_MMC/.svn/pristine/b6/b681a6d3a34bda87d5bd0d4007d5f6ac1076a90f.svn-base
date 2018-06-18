@@ -1,0 +1,482 @@
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using System.IO;
+using System.Text.RegularExpressions;
+
+
+
+namespace MolarMass_GroupLabB
+{
+    public partial class Form1 : Form
+    {
+
+        List<Chemical> baseChemicalList = new List<Chemical>();
+        BindingSource BS = new BindingSource();
+        public Form1()
+        {
+            InitializeComponent();
+            this.Text = "LINQ ICA";
+            dataGridView1.DataSource = BS;
+            LoadFile();
+        }
+
+        //-------------------------------------------------------------Form Events-------------------------------------------------------------
+        private void chemFormBox_TextChanged(object sender, EventArgs e)
+        {
+            int checkBox = 0;
+            //var testBig = new Regex(@"[A-Z][a-z][0-9]{0,99}|[A-Z][a-z]|[A-Z][0-9]{0,99}|[A-Z]|[0-9]{0,99}|[a-z]"); // break on these "|" solid line seperates the statements
+            var testBig = new Regex(@"([A-Z]{1}[a-z]{0,1})([0-9]{0,2})"); // break on these "|" solid line seperates the statements 
+                                                                          // () is for grouping
+                                                                          // carrot and dollar means it must start with this case(carrot) and end with that case(dollar sign) respectively
+            MatchCollection matches = testBig.Matches(chemFormBox.Text);
+            Console.WriteLine(matches);
+            foreach (Match m in matches)
+            { checkBox += m.Length; }
+
+            //CalculateTotalMass(matches);            // call totalmass method
+
+           // Dictionary<Chemical, int> resultDictionary = GetCurrentChemicals(matches);      // return dict of key being chemical symbol and value being multipler
+            //DisplayCurrentChemicals(resultDictionary);                      // display the keyvalue pairs
+            JoinDisplayChemicals(matches);
+
+            if (chemFormBox.Text.Length != checkBox)
+            {
+                totalMassBox.ForeColor = Color.Red;
+                totalMassBox.Text = "Wrong";
+            }
+
+        }
+
+
+        private void sortButton_Click(object sender, EventArgs e)
+        {
+            //When the sort by name button is clicked, data grid is sorted according to element name alphabetically
+            SortByName();
+
+        }
+        private void sortNumButton_Click(object sender, EventArgs e)
+        {
+            SortByAtomic();
+        }
+        private void singlecharButton_Click(object sender, EventArgs e)
+        {
+            SortBySingle();
+        }
+
+
+        //----------------------------------------------------Methods-------------------------------------------------
+        /**************************************************************************
+         * Load File: Loads CSV file and adds elements to a collection for
+         *            manipulation.
+         * ************************************************************************/
+        private void LoadFile()
+        {
+            List<string> listOfLines = new List<string>();
+            List<string> listOfValues = new List<string>();
+            int counter = 0;
+            try
+            {
+                StreamReader reader = new StreamReader(@"PeriodicTable.csv");
+                using (reader = new StreamReader(@"PeriodicTable.csv"))
+                {
+                    string line;
+                    while ((line = reader.ReadLine()) != null)
+                    {
+                        var values = line.Split(',');
+                        if (counter > 0)            // special case so title line of csv file does not cause error
+                        {
+                            Chemical adder = new Chemical(Convert.ToInt32(values[0]), values[2].Trim(' '), values[1].Trim(' '), Convert.ToDouble(values[3]));
+                            baseChemicalList.Add(adder);
+                        }
+
+                        counter++;
+                    }
+
+                    BS.DataSource = baseChemicalList;
+
+                }
+
+            }
+
+            catch (Exception e)
+            {
+                MessageBox.Show("Error in Load File: " + e.Message, "MMC_B", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+
+
+        }
+        /**************************************************************************
+         * SortByName: Clears current data grid, sorts list of elements by name
+         *             and outputs to the data grid
+         * ************************************************************************/
+        private void SortByName()
+        {
+            chemFormBox.Clear(); totalMassBox.Clear();
+            List<Chemical> copyChemicalList = baseChemicalList;
+            BS.DataSource = from element in copyChemicalList orderby element.chemicalName select element;
+
+        }
+        /**************************************************************************
+         * SortByAtomic: Clears current data grid, sorts list of elements by their
+         *               respective atomic number and outputs it to the grid
+         * ************************************************************************/
+        private void SortByAtomic()
+        {
+
+            chemFormBox.Clear(); totalMassBox.Clear();
+            List<Chemical> copyChemicalList = baseChemicalList;
+            BS.DataSource = from element in copyChemicalList orderby element.atomicNum select element;
+
+
+        }
+
+        /**************************************************************************
+         * SortBySingle: Clears current data grid, Sorts the list of elements such
+         *               that they only include the single character elements
+         * ************************************************************************/
+        private void SortBySingle()
+        {
+            chemFormBox.Clear(); totalMassBox.Clear();
+            List<Chemical> copyChemicalList = baseChemicalList;
+            BS.DataSource = from element in copyChemicalList orderby element.chemicalSymbol.Length, element.chemicalSymbol select element;
+
+        }
+        /**************************************************************************
+         * CalculateToMass: Calculates the total molar mass of a chemical compound
+         *                  and outputs the value toa text field.
+         **************************************************************************/
+
+        private void JoinDisplayChemicals(MatchCollection matches)
+        {
+            
+            Dictionary<string, int> matchDictionary = new Dictionary<string, int>();
+
+            List<string> symbolList = new List<string>();       // to be list of the all the chemical symbols
+            baseChemicalList.ForEach(x => symbolList.Add(x.chemicalSymbol));    // adding symbols
+            double totalSum = 0;          // total mass for calculation and display reset every event
+            //Dictionary<Chemical, int> resultDictionary = new Dictionary<Chemical, int>();
+            bool incorrectValue = false;
+
+
+            foreach (Match m in matches)                // iterate through match collection
+            {
+                if (m.Groups[m.Groups.Count - 1].Value.ToString() != "")  // check if number group is empty
+                {
+                    if (matchDictionary.ContainsKey(m.Groups[1].Value.ToString()))      // check for chemicals existence in dictionary
+                        matchDictionary[m.Groups[1].Value.ToString()] += int.Parse(m.Groups[2].Value.ToString());  // add multipler to value
+
+                    else
+                        matchDictionary.Add(m.Groups[1].Value.ToString(), int.Parse(m.Groups[2].Value.ToString())); // create chemcial key and multipler value
+                }
+                else      // no multipling number
+                {
+                    if (matchDictionary.ContainsKey(m.Groups[1].Value.ToString()))  // check for existence
+                        matchDictionary[m.Groups[1].Value.ToString()]++;        // increment multipler value
+
+                    else
+                        matchDictionary.Add(m.Groups[1].Value.ToString(), 1);       // create chemical and multipler number
+                }
+
+            }
+
+            var rChems = from c in baseChemicalList                     // search base chemicals
+                         join m in matchDictionary on c.chemicalSymbol equals m.Key // join on match dictionary
+                         select new
+                         {
+                             Element = c.chemicalName,      // the stuff
+                             Count = m.Value,
+                             Mass = c.chemicalMass,
+                             TotalMass = c.chemicalMass * m.Value
+
+
+                         };
+            
+            rChems.ToList().ForEach(x => totalSum += x.TotalMass);  // increase total sum for display accoridingly
+
+            totalMassBox.ForeColor = Color.Green; totalMassBox.Text = totalSum.ToString() + " g/mol"; // display totalsum of total masses
+
+            BS.DataSource = rChems;         // datasource for grid view
+
+            foreach (KeyValuePair<string, int> mD in matchDictionary)   
+            {
+                if (!symbolList.Contains(mD.Key))   // check for incorrect match for chemicals
+                    incorrectValue = true;
+            }
+            if (incorrectValue) // if and incorrect value is found set error messege
+            {
+                totalMassBox.ForeColor = Color.Red;
+                totalMassBox.Text = "Wrong";
+            }
+
+
+
+
+        }
+
+
+
+
+
+
+
+
+        /**************************************************************************
+         * Old Methods that do work but are not LINQy or JOINey enough
+         **************************************************************************/
+
+        private void CalculateTotalMass(MatchCollection matches)    // uses linq statement to get number value of and another regex to trim off number
+        {                                                           // then caculate and display current total mass of the textbox
+
+            List<string> symbolList = new List<string>();       // to be list of the all the chemical symbols
+            baseChemicalList.ForEach(x => symbolList.Add(x.chemicalSymbol));    // adding symbols
+
+
+            double totalMass = 0;           // total mass for calculation and display reset every event
+            bool incorrectChemical = false;
+
+
+            foreach (var match in matches)  // iterate through all regex matches
+            {
+                //Console.WriteLine(match.ToString()); testing
+                string strMatch = match.ToString();     // hold match in a string
+                Console.WriteLine(strMatch);
+
+                var multiNumber = from n in strMatch where (n >= 48 && n <= 57) select n; // check last char for the ascii value of 1 to 9
+
+                strMatch = Regex.Replace(strMatch, @"[0-9]", "");           // trim string to isolate chemcial symbol
+                if (symbolList.Contains(strMatch))
+                {
+                    //var chemical = from m in strMatch where rxChem.IsMa select m;
+                    if (multiNumber.Count() == 1)    // check if the match has number at the end
+                    {
+                        strMatch = Regex.Replace(strMatch, @"[0-9]", "");
+
+                        if (symbolList.Contains(strMatch))  // check that the match is a value chemical in our table
+                        {
+                            int muliptier = Convert.ToInt32(multiNumber.Last()) - 48; // the convert doesnt work so subtracted 48 of the ascii value to get desired multipler
+
+
+                            var cChem = from c in baseChemicalList where c.chemicalSymbol == strMatch select c;     // linq statement to find matching symbol in chemical list
+                            Chemical rChem = cChem.First();                          // convert first result to chemical to class
+                            totalMass += rChem.chemicalMass * muliptier;        // add chemicals mass to total mass
+
+                            totalMassBox.ForeColor = Color.Green;
+                            totalMassBox.Text = totalMass.ToString() + " g/mol";               // display caculated total mass
+                        }
+                    }
+                    else if (multiNumber.Count() == 2)
+                    {
+
+                        strMatch = Regex.Replace(strMatch, @"[0-9]", "");
+
+                        if (symbolList.Contains(strMatch))  // check that the match is a value chemical in our table
+                        {
+                            string numO = (multiNumber.First() - 48).ToString();            // isolate and concat two digits
+                            string numT = (multiNumber.Last() - 48).ToString();
+                            string num = numO + numT; int muliptier = Convert.ToInt32(num); // convert concated string to int
+
+
+                            // int muliptier = Convert.ToInt32(multiNumber.Last()) - 48; // the convert doesnt work so subtracted 48 of the ascii value to get desired multipler
+
+
+                            var cChem = from c in baseChemicalList where c.chemicalSymbol == strMatch select c;     // linq statement to find matching symbol in chemical list
+                            Chemical rChem = cChem.First();                          // convert first result to chemical to class
+                            totalMass += rChem.chemicalMass * muliptier;        // add chemicals mass to total mass
+
+                            totalMassBox.ForeColor = Color.Green;
+                            totalMassBox.Text = totalMass.ToString() + " g/mol";               // display caculated total mass
+                        }
+                    }
+                    else      // no number will count the chemical as a single one
+                    {
+                        if (symbolList.Contains(strMatch))  // check that the match is a value chemical in our table
+                        {
+                            var cChem = from c in baseChemicalList where c.chemicalSymbol == strMatch select c;     // linq statement to find matching symbol in chemical list
+                            Chemical rChem = cChem.First();                          // convert first result to chemical to class
+                            totalMass += rChem.chemicalMass;        // add chemicals mass to total mass
+
+                            totalMassBox.ForeColor = Color.Green;
+                            totalMassBox.Text = totalMass.ToString() + " g/mol";               // display caculated total mass
+                        }
+                    }
+                }
+                else
+                    incorrectChemical = true;
+
+
+
+            }
+            if (incorrectChemical)      // if any false mathces exist set the box to fail statement
+            {
+                totalMassBox.ForeColor = Color.Red;
+                totalMassBox.Text = "Incorrect Format";
+            }
+
+
+
+
+        }
+
+        private Dictionary<Chemical, int> GetCurrentChemicals(MatchCollection matches)
+        {
+            List<string> symMatches = new List<string>();
+            List<int> multiMatches = new List<int>();
+            List<string> symbolList = new List<string>();       // to be list of the all the chemical symbols
+            baseChemicalList.ForEach(x => symbolList.Add(x.chemicalSymbol));    // adding symbols
+            double totalMass = 0;           // total mass for calculation and display reset every event
+            Dictionary<Chemical, int> resultDictionary = new Dictionary<Chemical, int>();
+
+
+            foreach (Match m in matches)
+            {
+                symMatches.Add(m.Groups[0].ToString());
+                Console.WriteLine(m.Groups[0]);
+                Console.WriteLine(m.Groups[1]);
+                Console.WriteLine(m.Groups[2]);
+                string ml = m.ToString();
+                ml = Regex.Replace(ml, @"[0-9]", "");
+                symMatches.Add(ml);
+
+
+                //   multiMatches.Add(Convert.ToInt32(m.Groups[1]));
+            }
+
+            //var rChems = from c in baseChemicalList
+            //             join m in symMatches on c.chemicalSymbol equals m
+            //             select new {
+
+            //             }
+
+            foreach (var match in matches)
+            {
+                Console.WriteLine(match);
+                string strMatch = match.ToString();     // hold match in a string
+                Chemical resultChem = null;
+
+                var multiNumber = from n in strMatch where (n >= 48 && n <= 57) select n; // check last char for the ascii value of 1 to 9
+
+                if (multiNumber.Count() == 1)    // check if the match has number at the end
+                {
+                    strMatch = Regex.Replace(strMatch, @"[0-9]", "");       // regex statement to remove multipler number from string
+
+                    if (symbolList.Contains(strMatch))  // check that the match is a value chemical in our table
+                    {
+                        int muliptier = Convert.ToInt32(multiNumber.Last()) - 48; // the convert doesnt work so subtracted 48 of the ascii value to get desired multipler
+
+
+
+                        var cChem = from c in baseChemicalList where c.chemicalSymbol == strMatch select c;     // linq statement to find matching symbol in chemical list
+                        resultChem = cChem.First();                          // convert first result to chemical to class
+
+                        if (resultDictionary.Keys.Contains(resultChem))     // check dictionary for chemical
+                            resultDictionary[resultChem] += muliptier;      // add multipler if its already there
+                        else
+                            resultDictionary.Add(resultChem, muliptier);    // create element if its not in dictionary
+
+
+                    }
+                }
+                else if (multiNumber.Count() == 2)          // case for double digit multiplers
+                {
+
+                    strMatch = Regex.Replace(strMatch, @"[0-9]", "");       // trim str case
+
+                    if (symbolList.Contains(strMatch))  // check that the match is a value chemical in our table
+                    {
+                        string numO = (multiNumber.First() - 48).ToString();            // isolate and then concat two digits 
+                        string numT = (multiNumber.Last() - 48).ToString();
+                        string num = numO + numT; int muliptier = Convert.ToInt32(num); // then convert to int
+
+
+                        var cChem = from c in baseChemicalList where c.chemicalSymbol == strMatch select c;     // linq statement to find matching symbol in chemical list
+                        resultChem = cChem.First();                          // convert first result to chemical to class
+
+                        if (resultDictionary.Keys.Contains(resultChem))     // check dictionary for chemical
+                            resultDictionary[resultChem] += muliptier;      // add multipler if its already there
+                        else
+                            resultDictionary.Add(resultChem, muliptier);    // create element if its not in dictionarytal mass
+                    }
+                }
+
+
+                else      // no number will count the chemical as a single one
+                {
+                    if (symbolList.Contains(strMatch))  // check that the match is a value chemical in our table
+                    {
+                        var cChem = from c in baseChemicalList where c.chemicalSymbol == strMatch select c;     // linq statement to find matching symbol in chemical list
+                        resultChem = cChem.First();                          // convert first result to chemical to class
+
+                        if (resultDictionary.Keys.Contains(resultChem)) // same check with no multipler just add 1
+                            resultDictionary[resultChem]++;
+                        else
+                            resultDictionary.Add(resultChem, 1);
+                    }
+                }
+
+            }
+
+            return resultDictionary;
+
+
+
+
+        }
+        
+
+
+        /// <summary>
+        /// Displays current chemical components using a sent dictionary of chemical/ multipler information
+        /// </summary>
+        /// <param name="resultDictionary"></param>
+        private void DisplayCurrentChemicals (Dictionary<Chemical, int> resultDictionary)
+        {
+            //dataGridView1.Rows.Clear();
+            //dataGridView1.ColumnCount = 4;
+            //dataGridView1.Columns[0].Name = "Element";
+            //dataGridView1.Columns[1].Name = "Count";
+            //dataGridView1.Columns[2].Name = "Mass";
+            //dataGridView1.Columns[3].Name = "TotalMass";
+
+           
+
+
+
+            //foreach (var c in resultDictionary)         // iterate through chemical and multipler dictionary
+            //{
+            //    if (c.Value != 1 && c.Value < 10)   // check for multipler
+            //    {
+            //        string[] row = new string[] { c.Key.chemicalName, c.Value.ToString(), c.Key.chemicalMass.ToString(), (c.Key.chemicalMass * c.Value).ToString() };   // new string array of inforamtion with multipler on total mass
+            //        dataGridView1.Rows.Add(row);    // display
+
+            //    }
+            //    else if (c.Value > 9)
+            //    {
+            //        string[] row = new string[] { c.Key.chemicalName, c.Value.ToString(), c.Key.chemicalMass.ToString(), (c.Key.chemicalMass * c.Value).ToString() };   // new string array of inforamtion with multipler on total mass
+            //        dataGridView1.Rows.Add(row);    // display
+
+            //    }
+            //    else
+            //    {
+            //        string[] row = new string[] { c.Key.chemicalName, c.Value.ToString(), c.Key.chemicalMass.ToString(), c.Key.chemicalMass.ToString() };
+            //        dataGridView1.Rows.Add(row);
+            //    }
+
+            //}
+
+
+
+        }
+
+      
+    }
+
+
+
+}

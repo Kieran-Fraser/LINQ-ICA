@@ -1,0 +1,10 @@
+E:\NAIT School Files\Nait Sem2 y2\AdvancdedCSharp\MMC_GroupB\MolarMass_GroupLabB\bin\Debug\MolarMass_GroupLabB.exe.config
+E:\NAIT School Files\Nait Sem2 y2\AdvancdedCSharp\MMC_GroupB\MolarMass_GroupLabB\bin\Debug\MolarMass_GroupLabB.exe
+E:\NAIT School Files\Nait Sem2 y2\AdvancdedCSharp\MMC_GroupB\MolarMass_GroupLabB\bin\Debug\MolarMass_GroupLabB.pdb
+E:\NAIT School Files\Nait Sem2 y2\AdvancdedCSharp\MMC_GroupB\MolarMass_GroupLabB\obj\Debug\MolarMass_GroupLabB.csprojResolveAssemblyReference.cache
+E:\NAIT School Files\Nait Sem2 y2\AdvancdedCSharp\MMC_GroupB\MolarMass_GroupLabB\obj\Debug\MolarMass_GroupLabB.Form1.resources
+E:\NAIT School Files\Nait Sem2 y2\AdvancdedCSharp\MMC_GroupB\MolarMass_GroupLabB\obj\Debug\MolarMass_GroupLabB.Properties.Resources.resources
+E:\NAIT School Files\Nait Sem2 y2\AdvancdedCSharp\MMC_GroupB\MolarMass_GroupLabB\obj\Debug\MolarMass_GroupLabB.csproj.GenerateResource.Cache
+E:\NAIT School Files\Nait Sem2 y2\AdvancdedCSharp\MMC_GroupB\MolarMass_GroupLabB\obj\Debug\MolarMass_GroupLabB.csproj.CoreCompileInputs.cache
+E:\NAIT School Files\Nait Sem2 y2\AdvancdedCSharp\MMC_GroupB\MolarMass_GroupLabB\obj\Debug\MolarMass_GroupLabB.exe
+E:\NAIT School Files\Nait Sem2 y2\AdvancdedCSharp\MMC_GroupB\MolarMass_GroupLabB\obj\Debug\MolarMass_GroupLabB.pdb
